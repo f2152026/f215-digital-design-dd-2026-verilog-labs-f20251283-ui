@@ -35,5 +35,56 @@ module cla4(
 
   // TODO: your gate-level P/G, carry, and sum logic goes here.
   // (cout should be connected to c4.) Remember the delay on every gate.
+  // Intermediate wires for AND terms in carry generation
+    wire c1_term0;
+    wire c2_term0, c2_term1;
+    wire c3_term0, c3_term1, c3_term2;
+    wire cout_term0, cout_term1, cout_term2, cout_term3;
+
+    // ------------------------------------------------------------------------
+    // Step 1: Generate & Propagate signals (1 XOR + 1 AND per bit)
+    // ------------------------------------------------------------------------
+    xor #(2) (p0, a[0], b[0]);
+    xor #(2) (p1, a[1], b[1]);
+    xor #(2) (p2, a[2], b[2]);
+    xor #(2) (p3, a[3], b[3]);
+
+    and #(2) (g0, a[0], b[0]);
+    and #(2) (g1, a[1], b[1]);
+    and #(2) (g2, a[2], b[2]);
+    and #(2) (g3, a[3], b[3]);
+
+    // ------------------------------------------------------------------------
+    // Step 2: Direct (non-recursive) Carry equations
+    // ------------------------------------------------------------------------
+    // c1 = g0 + p0.cin
+    and #(2) (c1_term0, p0, cin);
+    or  #(2) (c1, g0, c1_term0);
+
+    // c2 = g1 + p1.g0 + p1.p0.cin
+    and #(2) (c2_term0, p1, g0);
+    and #(2) (c2_term1, p1, p0, cin);
+    or  #(2) (c2, g1, c2_term0, c2_term1);
+
+    // c3 = g2 + p2.g1 + p2.p1.g0 + p2.p1.p0.cin
+    and #(2) (c3_term0, p2, g1);
+    and #(2) (c3_term1, p2, p1, g0);
+    and #(2) (c3_term2, p2, p1, p0, cin);
+    or  #(2) (c3, g2, c3_term0, c3_term1, c3_term2);
+
+    // cout (c4) = g3 + p3.g2 + p3.p2.g1 + p3.p2.p1.g0 + p3.p2.p1.p0.cin
+    and #(2) (cout_term0, p3, g2);
+    and #(2) (cout_term1, p3, p2, g1);
+    and #(2) (cout_term2, p3, p2, p1, g0);
+    and #(2) (cout_term3, p3, p2, p1, p0, cin);
+    or  #(2) (cout, g3, cout_term0, cout_term1, cout_term2, cout_term3);
+
+    // ------------------------------------------------------------------------
+    // Step 3: Sum bits (sum[i] = p[i] ^ c[i], where c0 = cin)
+    // ------------------------------------------------------------------------
+    xor #(2) (sum[0], p0, cin);
+    xor #(2) (sum[1], p1, c1);
+    xor #(2) (sum[2], p2, c2);
+    xor #(2) (sum[3], p3, c3);
 
 endmodule
